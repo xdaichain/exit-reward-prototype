@@ -1,0 +1,24 @@
+{
+  "name": "exit-reward-prototype",
+  "version": "1.0.0",
+  "description": "A prototype for EXIT Reward Token demo",
+  "main": "",
+  "scripts": {
+    "compile": "node_modules/.bin/truffle compile",
+    "flat": "bash scripts/make_flat.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xdaichain/exit-reward-prototype.git"
+  },
+  "author": "POA Network",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xdaichain/exit-reward-prototype/issues"
+  },
+  "homepage": "https://github.com/xdaichain/exit-reward-prototype#readme",
+  "devDependencies": {
+    "solidity-flattener": "github:poanetwork/solidity-flattener#master",
+    "truffle": "^5.1.9"
+  }
+}
