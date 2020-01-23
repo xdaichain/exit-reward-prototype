@@ -76,12 +76,6 @@ contract Reward is Initializable {
         _;
     }
 
-    /// @dev Modifier to check whether the `msg.sender` is the admin (owner).
-    modifier ifOwner() {
-        require(msg.sender == _admin());
-        _;
-    }
-
     // =============================================== Setters ========================================================
 
     /// @dev Emulates finishing of staking epoch, mints EXIT tokens for the `staker` address.
@@ -106,7 +100,6 @@ contract Reward is Initializable {
     }
 
     /// @dev Initializes the contract. Used instead of constructor since this contract is upgradeable.
-    /// Can only be called by the owner.
     /// @param _staker The address of staker. EXIT tokens will be minted to this address.
     /// @param _currencyRateChanger The address that has the rights to change STAKE/USD rate.
     /// @param _exitToken The address of EXIT token contract.
@@ -116,7 +109,8 @@ contract Reward is Initializable {
         address _currencyRateChanger,
         IExitToken _exitToken,
         ISoftETHToken _softETHToken
-    ) public initializer ifOwner {
+    ) public initializer {
+        require(_admin() != address(0)); // make sure it is called by the proxy contract with `delegatecall`
         require(_staker != address(0));
         require(_currencyRateChanger != address(0));
         require(_exitToken != IExitToken(0));
@@ -200,16 +194,14 @@ contract Reward is Initializable {
 
     // ============================================== Internal ========================================================
 
-    /// @dev Storage slot with the admin (owner) of the contract (needed for upgradability).
-    /// This is the keccak-256 hash of "eip1967.proxy.admin" subtracted by 1.
-    bytes32 internal constant ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
-
     /// @dev The address of the contract in Ethereum Mainnet which provides the current USD/ETH rate.
     address internal constant PRICE_ORACLE = 0xAd13fE330B0aE312bC51d2E5B9Ca2ae3973957C7;
 
-    /// @dev Returns the admin slot (needed for upgradability).
+    /// @dev Returns the admin slot.
     function _admin() internal view returns(address adm) {
-        bytes32 slot = ADMIN_SLOT;
+        /// Storage slot with the admin of the contract.
+        /// This is the keccak-256 hash of "eip1967.proxy.admin" subtracted by 1.
+        bytes32 slot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
         assembly {
             adm := sload(slot)
         }
