@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/xdaichain/exit-reward-prototype#readme",
   "devDependencies": {
+    "@openzeppelin/contracts": "2.4.0",
     "@openzeppelin/upgrades": "2.6.0",
     "solidity-flattener": "github:poanetwork/solidity-flattener#master",
     "truffle": "5.1.9"

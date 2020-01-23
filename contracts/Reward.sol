@@ -1,12 +1,14 @@
 pragma solidity 0.5.16;
 
 import "./interfaces/IExitToken.sol";
-import "./interfaces/ISoftETH.sol";
+import "./interfaces/ISoftETHToken.sol";
 import "./interfaces/IPriceOracle.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
 
 contract Reward is Initializable {
+    using SafeMath for uint256;
 
     // =============================================== Storage ========================================================
 
@@ -27,7 +29,7 @@ contract Reward is Initializable {
     IExitToken public exitToken;
 
     /// @dev The address of softETH token contract.
-    ISoftETH public softETHToken;
+    ISoftETHToken public softETHToken;
 
     /// @dev The latest known ETH/USD rate (in USD cents) set by `rebalance` function.
     /// Has 2 decimals (e.g., 160.35 USD presented as 16035).
@@ -50,9 +52,9 @@ contract Reward is Initializable {
     // ================================================ Events ========================================================
 
     /// @dev Emitted by the `rebalance` function.
-    /// @param newAmount The new `totalSupply` of softETH tokens.
+    /// @param newTotalSupply The new `totalSupply` of softETH tokens.
     /// @param caller The address called the function.
-    event Rebalanced(uint256 newAmount, address indexed caller);
+    event Rebalanced(uint256 newTotalSupply, address indexed caller);
 
     /// @dev Emitted by the `finishStakingEpoch` function.
     /// @param stakingEpoch The number of finished staking epoch.
@@ -93,8 +95,8 @@ contract Reward is Initializable {
         require(staker != address(0));
         require(stakeUsd != 0);
 
-        uint256 usdAmount = _totalStakeAmount * stakeUsd / 100;
-        uint256 mintAmount = usdAmount * EXIT_MINT_RATE / 100;
+        uint256 usdAmount = _totalStakeAmount.mul(stakeUsd).div(100);
+        uint256 mintAmount = usdAmount.mul(EXIT_MINT_RATE).div(100);
         exitToken.mint(staker, mintAmount);
         rebalance();
 
@@ -113,12 +115,12 @@ contract Reward is Initializable {
         address _staker,
         address _currencyRateChanger,
         IExitToken _exitToken,
-        ISoftETH _softETHToken
+        ISoftETHToken _softETHToken
     ) public initializer ifOwner {
         require(_staker != address(0));
         require(_currencyRateChanger != address(0));
         require(_exitToken != IExitToken(0));
-        require(_softETHToken != ISoftETH(0));
+        require(_softETHToken != ISoftETHToken(0));
         staker = _staker;
         currencyRateChanger = _currencyRateChanger;
         exitToken = _exitToken;
@@ -130,7 +132,7 @@ contract Reward is Initializable {
     /// Can be called by anyone.
     function rebalance() public {
         require(exitToken != IExitToken(0));
-        require(softETHToken != ISoftETH(0));
+        require(softETHToken != ISoftETHToken(0));
 
         uint256 ethInUSD = usdEthCurrent(); // how many ETHs in 1 USD at the moment
         require(ethInUSD != 0);
@@ -218,7 +220,7 @@ contract Reward is Initializable {
     /// and the passed USD/ETH rate.
     /// @param _ethInUSD The current USD/ETH rate (must have 18 decimals).
     function _softETHExpectedSupply(uint256 _ethInUSD) internal view returns(uint256) {
-        return exitToken.totalSupply() * COLLATERAL_MULTIPLIER * _ethInUSD;
+        return exitToken.totalSupply().mul(COLLATERAL_MULTIPLIER).mul(_ethInUSD);
     }
 
 }
