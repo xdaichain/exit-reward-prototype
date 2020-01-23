@@ -136,20 +136,20 @@ contract Reward is Initializable {
         require(ethInUSD != 0);
         
         // Calculate the current and new softETH amounts
-        uint256 currentAmount = softETHToken.totalSupply();
-        uint256 newAmount = exitToken.totalSupply() * COLLATERAL_MULTIPLIER * ethInUSD;
+        uint256 currentSupply = softETHCurrentSupply();
+        uint256 expectedSupply = _softETHExpectedSupply(ethInUSD);
 
-        if (newAmount > currentAmount) {
+        if (expectedSupply > currentSupply) {
             // We need to have more softETH tokens, so mint the lack tokens
-            softETHToken.mint(address(this), newAmount - currentAmount);
-        } else if (newAmount < currentAmount) {
+            softETHToken.mint(address(this), expectedSupply - currentSupply);
+        } else if (expectedSupply < currentSupply) {
             // We need to have less softETH tokens, so burn the excess tokens
-            softETHToken.burn(currentAmount - newAmount);
+            softETHToken.burn(currentSupply - expectedSupply);
         }
 
         ethUsd = 100 ether / ethInUSD;
 
-        emit Rebalanced(newAmount, msg.sender);
+        emit Rebalanced(expectedSupply, msg.sender);
     }
 
     /// @dev Sets the current STAKE/USD rate in USD cents.
@@ -184,6 +184,18 @@ contract Reward is Initializable {
         return returnAmount;
     }
 
+    /// @dev Returns the current total supply of softETH tokens.
+    function softETHCurrentSupply() public view returns(uint256) {
+        return softETHToken.totalSupply();
+    }
+
+    /// @dev Returns the current expected supply of softETH tokens
+    /// based on the supply of EXIT tokens, COLLATERAL_MULTIPLIER,
+    /// and the current USD/ETH rate.
+    function softETHExpectedSupply() public view returns(uint256) {
+        return _softETHExpectedSupply(usdEthCurrent());
+    }
+
     // ============================================== Internal ========================================================
 
     /// @dev Storage slot with the admin (owner) of the contract (needed for upgradability).
@@ -199,6 +211,14 @@ contract Reward is Initializable {
         assembly {
             adm := sload(slot)
         }
+    }
+
+    /// @dev Returns the current expected supply of softETH tokens
+    /// based on the supply of EXIT tokens, COLLATERAL_MULTIPLIER,
+    /// and the passed USD/ETH rate.
+    /// @param _ethInUSD The current USD/ETH rate (must have 18 decimals).
+    function _softETHExpectedSupply(uint256 _ethInUSD) internal view returns(uint256) {
+        return exitToken.totalSupply() * COLLATERAL_MULTIPLIER * _ethInUSD;
     }
 
 }
