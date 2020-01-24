@@ -5,13 +5,15 @@ See https://poa.gitbook.io/exit/ first to get the detailed info of the concept.
 ## Contracts
 
 This prototype consists of three contracts:
-- **Reward** is a main contract which emulates a rewardable action (in this case - finishing staking epoch and minting EXIT tokens) and implements the rebalance mechanism of SoftETH tokens total supply. This contract is upgradeable by the `RewardProxy` contract.
+- **Reward** is a main contract which emulates a rewardable action (in this case - finishing staking epoch and minting EXIT tokens) and implements the rebalance mechanism of SoftETH tokens total supply. This contract is upgradeable by the `RewardProxy` contract. For upgradability we use [OpenZeppelin solution](https://github.com/OpenZeppelin/openzeppelin-sdk/tree/master/packages/lib/contracts).
 
 - **ExitToken** is an ERC20 token contract representing EXIT token. It is mintable by the `Reward` contract. Initially, it's created with an empty supply. The supply is increased by the `Reward.finishStakingEpoch()` function (see below). No one else can mint the EXIT tokens.
 
 - **SoftETHToken** is an ERC20 token contract representing SoftETH token. It is mintable and burnable by the `Reward` contract. Initially, it's created with an empty supply. The supply is changed by the `Reward.rebalance()` function (see below). No one else can mint or burn the SoftETH tokens.
 
 These contracts are to be deployed in Ethereum Mainnet only. We use a public [price oracle contract](https://etherscan.io/address/0xad13fe330b0ae312bc51d2e5b9ca2ae3973957c7#code) available on Mainnet to retrieve the current ETH/USD rate.
+
+For ERC20 implementations we use the latest [OpenZeppelin contracts](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/token/ERC20).
 
 #### Reward contract constants
 
@@ -81,7 +83,7 @@ The Reward contract assumes to have three users:
     
     The `admin` address cannot be the same as `staker`/`currencyRateChanger`.
     
-    Make sure the `admin` address has at least 0.02 ETH and the `staker`/`currencyRateChanger` has at least 0.001 ETH.
+    Make sure the `admin` address has at least 0.02 ETH and the `staker`/`currencyRateChanger` has at least 0.001 ETH (for the gasPrice of 5 gwei).
 
 3. Set appropriate `gasPrice` in `truffle-config.js` (the default is 5 gwei).
 
