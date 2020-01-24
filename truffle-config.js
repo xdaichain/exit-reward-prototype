@@ -1,3 +1,11 @@
+const fs = require('fs');
+const assert = require('assert');
+const HDWalletProvider = require("@truffle/hdwallet-provider");
+
+let privateKeys = fs.readFileSync('keys', 'utf8').trim().split('\n');
+privateKeys = privateKeys.map((key) => { return key.trim() });
+assert(privateKeys.length === 2);
+
 module.exports = {
   networks: {
     coverage: {
@@ -13,8 +21,27 @@ module.exports = {
       network_id: "*",
       gasPrice: 5000000000
     },
+    kovan: {
+      provider: () => new HDWalletProvider(
+        privateKeys,
+        "https://kovan.infura.io/v3/1125fe73d87c4e5396678f4e3089b3dd",
+        0,
+        privateKeys.length
+      ),
+      network_id: 42,
+      gasPrice: 1000000000,
+      skipDryRun: true
+    },
     mainnet: {
-      // to be defined
+      provider: () => new HDWalletProvider(
+        privateKeys,
+        "https://mainnet.infura.io/v3/1125fe73d87c4e5396678f4e3089b3dd",
+        0,
+        privateKeys.length
+      ),
+      network_id: 1,
+      gasPrice: 5000000000,
+      skipDryRun: true
     }
   },
   compilers: {

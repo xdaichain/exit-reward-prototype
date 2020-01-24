@@ -1,9 +1,12 @@
+const fs = require('fs');
+const assert = require('assert');
+
 const ExitToken = artifacts.require('ExitToken');
 const Reward = artifacts.require('Reward');
 const RewardProxy = artifacts.require('RewardProxy');
 const SoftETHToken = artifacts.require('SoftETHToken');
 
-const assert = require('assert');
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 module.exports = async (deployer, network, accounts) => {
     await deployer;
@@ -14,6 +17,11 @@ module.exports = async (deployer, network, accounts) => {
     const admin = accounts[0];
     const staker = accounts[1];
     const currencyRateChanger = accounts[1];
+    assert(admin && admin != ZERO_ADDRESS);
+    assert(staker && staker != ZERO_ADDRESS);
+    assert(currencyRateChanger && currencyRateChanger != ZERO_ADDRESS);
+    assert(admin.toLowerCase() != staker.toLowerCase());
+    assert(admin.toLowerCase() != currencyRateChanger.toLowerCase());
 
     const rewardLogic = await deployer.deploy(Reward);
     const rewardProxy = await deployer.deploy(RewardProxy, rewardLogic.address);
@@ -44,7 +52,16 @@ module.exports = async (deployer, network, accounts) => {
     await rewardContract.setSTAKEUSD(STAKEUSD, {from: currencyRateChanger});
     assert((await rewardContract.stakeUsd.call({from: currencyRateChanger})) == STAKEUSD);
 
-    console.log('EVERYTHING IS FINE');
+    const addresses = {
+        "ADMIN": admin,
+        "CURRENCY_RATE_CHANGER": currencyRateChanger,
+        "STAKER": staker,
+        "REWARD_IMPLEMENTATION": rewardLogic.address,
+        "REWARD_PROXY": rewardProxy.address,
+        "EXIT_TOKEN": exitToken.address,
+        "SOFT_ETH_TOKEN": softETHToken.address
+    };
+    fs.writeFileSync(`./addresses.${network}.json`, JSON.stringify(addresses, null, 2));
 }
 
 // To test the deployment, run
