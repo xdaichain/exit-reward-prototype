@@ -22,10 +22,7 @@
   "devDependencies": {
     "@openzeppelin/contracts": "2.4.0",
     "@openzeppelin/upgrades": "2.6.0",
-    "@truffle/hdwallet-provider": "^1.0.29",
-    "chai": "4.2.0",
-    "chai-as-promised": "7.1.1",
-    "chai-bn": "0.2.0",
+    "@truffle/hdwallet-provider": "1.0.29",
     "ganache-cli": "6.8.2",
     "solidity-flattener": "github:poanetwork/solidity-flattener#master",
     "truffle": "5.1.9"

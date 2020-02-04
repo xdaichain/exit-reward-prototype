@@ -167,6 +167,11 @@ contract Reward is Initializable {
         return 100 ether / ethers;
     }
 
+    /// @dev Returns the current total supply of EXIT tokens.
+    function exitCurrentSupply() public view returns(uint256) {
+        return exitToken.totalSupply();
+    }
+
     /// @dev Returns the current amount of ETHs in 1 USDT, i.e. USDT/ETH rate.
     /// The returned amount has 18 decimals.
     function usdEthCurrent() public view returns(uint256) {

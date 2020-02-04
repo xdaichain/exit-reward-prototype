@@ -40,6 +40,8 @@ There are a few public getters which could be helpful:
 
 - **usdEthCurrent** returns the current amount of ETHs in 1 USDT (i.e. USDT/ETH rate) provided by the price oracle. The returned amount has 18 decimals.
 
+- **exitCurrentSupply** returns the current total supply of EXIT tokens.
+
 - **softETHCurrentSupply** returns the current total supply of SoftETH tokens.
 
 - **softETHExpectedSupply** returns the current expected supply of SoftETH tokens based on the current supply of EXIT tokens, `COLLATERAL_MULTIPLIER`, and the current USDT/ETH rate.
