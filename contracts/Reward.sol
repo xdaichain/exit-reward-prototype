@@ -197,6 +197,23 @@ contract Reward is Initializable {
         return _softETHExpectedSupply(usdEthCurrent());
     }
 
+    /// @dev Returns the general data in a single request.
+    function getCurrentDataBatch() public view returns(
+        uint256 _ethUsdCurrent,
+        uint256 _exitCurrentSupply,
+        uint256 _lastStakingEpochFinished,
+        uint256 _softETHCurrentSupply,
+        uint256 _softETHExpectedSupply,
+        uint256 _stakeUsd
+    ) {
+        _ethUsdCurrent = ethUsdCurrent();
+        _exitCurrentSupply = exitCurrentSupply();
+        _lastStakingEpochFinished = lastStakingEpochFinished;
+        _softETHCurrentSupply = softETHCurrentSupply();
+        _softETHExpectedSupply = softETHExpectedSupply();
+        _stakeUsd = stakeUsd;
+    }
+
     // ============================================== Internal ========================================================
 
     /// @dev The address of the contract in Ethereum Mainnet which provides the current USD/ETH rate.
