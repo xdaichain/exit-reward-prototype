@@ -49,7 +49,7 @@ class Index extends React.Component {
       currentData._softETHExpectedSupply = Math.trunc(currentData._softETHExpectedSupply * 1000) / 1000;
       currentData._stakeUsd /= 100;
     }
-    this.setState({ currentData });
+    await this.setState({ currentData });
   }
 
   /*
@@ -94,8 +94,7 @@ class Index extends React.Component {
           } while (tx === null && currentBlockNumber <= finishBlockNumber)
           if (tx) {
             if (tx.status === true || tx.status === '0x1') {
-              _this.showAlert('Success', 'Transaction has been mined successfully.');
-              await _this.onRefresh();
+              _this.showAlert('Success', 'Transaction has been mined successfully.', () => {window.location.reload(true)});
             } else {
               _this.showAlert('Transaction reverted', 'Transaction reverted');
             }
@@ -139,7 +138,7 @@ class Index extends React.Component {
   }
 
   async onRefresh() {
-    this.setState({ currentData: null });
+    await this.setState({ currentData: null });
     await this.loadData();
   }
 
@@ -147,8 +146,8 @@ class Index extends React.Component {
     return new Promise(resolve => setTimeout(resolve, seconds * 1000))
   }
 
-  showAlert(title, message) {
-    this.refs.modal.show(title, message);
+  showAlert(title, message, callback) {
+    this.refs.modal.show(title, message, callback);
   }
 
   softETHtoEXITRatio() {
@@ -200,7 +199,10 @@ class Index extends React.Component {
   render() {
     const { currentData, lockButtons, totalStakeAmount } = this.state;
 
-    const loading = <span className="spinner-border spinner-border-sm text-info" role="status">
+    const loading = <span className="spinner-border text-info" role="status">
+      <span className="sr-only">Loading...</span>
+    </span>;
+    const loadingSmall = <span className="spinner-border spinner-border-sm text-info" role="status">
       <span className="sr-only">Loading...</span>
     </span>;
     const loadingButton = label => (<span>
@@ -219,58 +221,82 @@ class Index extends React.Component {
         <div className="container">
           <div className="row justify-content-md-center">
             <div className="col-md-auto" align="center">
-              <table className="table table-borderless mt-3" style={{width:'320px'}}>
+              <table className="table table-borderless mb-0" style={{width:'320px'}}>
                 <tbody>
                   <tr>
                     <td>Current staking epoch</td>
-                    <td className="w-25">{currentData ? currentData._lastStakingEpochFinished : loading}</td>
+                    <td width="30%">{currentData ? currentData._lastStakingEpochFinished : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td>STAKE/USD</td>
-                    <td>{currentData ? currentData._stakeUsd : loading}</td>
+                    <td>{currentData ? currentData._stakeUsd : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td>ETH/USD (last rebalance)</td>
-                    <td>{currentData ? currentData._ethUsd : loading}</td>
+                    <td>{currentData ? currentData._ethUsd : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td>ETH/USD (current)</td>
-                    <td>{currentData ? currentData._ethUsdCurrent : loading}</td>
+                    <td>{currentData ? currentData._ethUsdCurrent : loadingSmall}</td>
                   </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="col-md-auto" align="center">
+              <table className="table table-borderless mb-0" style={{width:'320px'}}>
+                <tbody>
                   <tr>
                     <td>EXIT total supply</td>
-                    <td>{currentData ? currentData._exitCurrentSupply : loading}</td>
+                    <td width="30%">{currentData ? currentData._exitCurrentSupply : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td>SoftETH total supply</td>
-                    <td>{currentData ? currentData._softETHCurrentSupply : loading}</td>
+                    <td>{currentData ? currentData._softETHCurrentSupply : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td>SoftETH expected supply</td>
-                    <td>{currentData ? currentData._softETHExpectedSupply : loading}</td>
-                  </tr>
-                  <tr>
-                    <td>SoftETH : EXIT</td>
-                    <td>{currentData ? this.softETHtoEXITRatio() + ' : 1' : loading}</td>
+                    <td>{currentData ? currentData._softETHExpectedSupply : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td colSpan="2">
-                      <button type="button" className="btn btn-outline-secondary btn-sm btn-block mb-3" onClick={this.onRefresh} disabled={!currentData}>
+                      <button type="button" className="btn btn-outline-secondary btn-sm btn-block" onClick={this.onRefresh} disabled={!currentData}>
                         {currentData ? 'Refresh' : loadingButton('Loading')}
                       </button>
-
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="row justify-content-md-center">
+            <div className="col-md-auto" align="center">
+              <table className="table table-borderless mb-0" style={{width:'320px',height:'150px'}}>
+                <tbody>
+                  <tr>
+                    <td align="center" className="align-bottom">
+                      SoftETH : EXIT
+                      <h1>{currentData ? this.softETHtoEXITRatio() + ' : 1' : loading}</h1>
+                      <button type="button" className="btn btn-info btn-block" onClick={this.onRebalance} disabled={lockButtons}>
+                        {!lockButtons ? 'Rebalance' : loadingButton('Waiting')}
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="col-md-auto" align="center">
+              <table className="table table-borderless mb-0" style={{width:'320px',height:'150px'}}>
+                <tbody>
+                  <tr>
+                    <td align="center" className="align-bottom">
                       <div className="input-group">
                         <input type="text" className="form-control text-right" placeholder="STAKE tokens amount" defaultValue={totalStakeAmount} onChange={this.onChangeStakeAmount} disabled={lockButtons} />
                         <div className="input-group-append">
                           <span className="input-group-text">.00 STAKE</span>
                         </div>
                       </div>
-                      <button type="button" className="btn btn-info btn-block mb-3" onClick={this.onFinishStakingEpoch} disabled={lockButtons}>
+                      <button type="button" className="btn btn-info btn-block mt-3" onClick={this.onFinishStakingEpoch} disabled={lockButtons}>
                         {!lockButtons ? 'Finish Staking Epoch' : loadingButton('Waiting')}
-                      </button>
-
-                      <button type="button" className="btn btn-info btn-block" onClick={this.onRebalance} disabled={lockButtons}>
-                        {!lockButtons ? 'Rebalance' : loadingButton('Waiting')}
                       </button>
                     </td>
                   </tr>
