@@ -199,6 +199,7 @@ contract Reward is Initializable {
 
     /// @dev Returns the general data in a single request.
     function getCurrentDataBatch() public view returns(
+        uint256 _ethUsd,
         uint256 _ethUsdCurrent,
         uint256 _exitCurrentSupply,
         uint256 _lastStakingEpochFinished,
@@ -206,6 +207,7 @@ contract Reward is Initializable {
         uint256 _softETHExpectedSupply,
         uint256 _stakeUsd
     ) {
+        _ethUsd = ethUsd;
         _ethUsdCurrent = ethUsdCurrent();
         _exitCurrentSupply = exitCurrentSupply();
         _lastStakingEpochFinished = lastStakingEpochFinished;
@@ -234,7 +236,7 @@ contract Reward is Initializable {
     /// and the passed USD/ETH rate.
     /// @param _ethInUSD The current USD/ETH rate (must have 18 decimals).
     function _softETHExpectedSupply(uint256 _ethInUSD) internal view returns(uint256) {
-        return exitToken.totalSupply().mul(COLLATERAL_MULTIPLIER).mul(_ethInUSD);
+        return exitToken.totalSupply().mul(COLLATERAL_MULTIPLIER).mul(_ethInUSD).div(1 ether);
     }
 
 }
