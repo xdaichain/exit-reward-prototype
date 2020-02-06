@@ -24,6 +24,9 @@ class Index extends React.Component {
       window.ethereum.autoRefreshOnNetworkChange = false;
     }
     await this.loadData();
+    $(function() {
+      $('[data-toggle="tooltip"]').tooltip();
+    });
   }
 
   async initChain(web3, chainId) {
@@ -32,10 +35,19 @@ class Index extends React.Component {
       publicRuntimeConfig.rewardContractABI,
       publicRuntimeConfig.rewardContractAddress
     );
+
     const exitTokenAddress = await rewardContract.methods.exitToken().call();
     const softETHTokenAddress = await rewardContract.methods.softETHToken().call();
     if (!chainId) chainId = await web3.eth.getChainId();
-    await this.setState({ chainId, exitTokenAddress, softETHTokenAddress, rewardContract });
+    const collateralMultiplier = await rewardContract.methods.COLLATERAL_MULTIPLIER().call();
+
+    await this.setState({
+      chainId,
+      collateralMultiplier,
+      exitTokenAddress,
+      softETHTokenAddress,
+      rewardContract
+    });
   }
 
   async loadData() {
@@ -200,7 +212,15 @@ class Index extends React.Component {
   }
 
   render() {
-    const { chainId, currentData, exitTokenAddress, softETHTokenAddress, lockButtons, totalStakeAmount } = this.state;
+    const {
+      chainId,
+      collateralMultiplier,
+      currentData,
+      exitTokenAddress,
+      softETHTokenAddress,
+      lockButtons,
+      totalStakeAmount
+    } = this.state;
 
     const loading = <span className="spinner-border text-info" role="status">
       <span className="sr-only">Loading...</span>
@@ -238,6 +258,8 @@ class Index extends React.Component {
       softETHTotalSupply = loadingSmall;
     }
 
+    const dottedHelp = {borderBottom:'1px dotted black',cursor:'default'};
+
     return (
       <div>
         <Head>
@@ -252,7 +274,7 @@ class Index extends React.Component {
               <table className="table table-borderless mb-0" style={{width:'320px'}}>
                 <tbody>
                   <tr>
-                    <td>Current staking epoch</td>
+                    <td><span data-toggle="tooltip" title="Number of the current staking epoch. At the end of each staking epoch, STAKE and EXIT rewards are minted and distributed to validators who participated in the epoch." style={dottedHelp}>Current staking epoch</span></td>
                     <td width="30%">{currentData ? '#' + currentData._lastStakingEpochFinished : loadingSmall}</td>
                   </tr>
                   <tr>
@@ -260,11 +282,11 @@ class Index extends React.Component {
                     <td>{currentData ? '$' + currentData._stakeUsd : loadingSmall}</td>
                   </tr>
                   <tr>
-                    <td>ETH/USD (last rebalance)</td>
+                    <td><span data-toggle="tooltip" title="The price of ETH at the previous rebalance." style={dottedHelp}>ETH/USD (last rebalance)</span></td>
                     <td>{currentData ? '$' + currentData._ethUsd : loadingSmall}</td>
                   </tr>
                   <tr>
-                    <td>ETH/USD (current)</td>
+                    <td><span data-toggle="tooltip" title="The price of ETH in USD for current block." style={dottedHelp}>ETH/USD (current)</span></td>
                     <td>{currentData ? '$' + currentData._ethUsdCurrent : loadingSmall}</td>
                   </tr>
                 </tbody>
@@ -274,15 +296,15 @@ class Index extends React.Component {
               <table className="table table-borderless mb-0" style={{width:'320px'}}>
                 <tbody>
                   <tr>
-                    <td>EXIT total supply</td>
+                    <td><span data-toggle="tooltip" title="Total amount of minted EXIT currently in the contract." style={dottedHelp}>EXIT total supply</span></td>
                     <td width="30%">{exitTotalSupply}</td>
                   </tr>
                   <tr>
-                    <td>SoftETH total supply</td>
+                    <td><span data-toggle="tooltip" title="Total amount of SoftETH currently in the contract to support the EXIT price." style={dottedHelp}>SoftETH total supply</span></td>
                     <td>{softETHTotalSupply}</td>
                   </tr>
                   <tr>
-                    <td>SoftETH expected supply</td>
+                    <td><span data-toggle="tooltip" title={`The amount of SoftETH required in the contract to support the ${collateralMultiplier}:1 ratio. This will either be smaller or larger than the total supply depending on the current ETH price.`} style={dottedHelp}>SoftETH expected supply</span></td>
                     <td>{currentData ? currentData._softETHExpectedSupply : loadingSmall}</td>
                   </tr>
                   <tr>
