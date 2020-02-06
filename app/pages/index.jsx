@@ -19,20 +19,23 @@ class Index extends React.Component {
   }
 
   async componentDidMount() {
-    await this.initContract(this.state.web3);
+    await this.initChain(this.state.web3);
     if (window.ethereum) {
       window.ethereum.autoRefreshOnNetworkChange = false;
     }
     await this.loadData();
   }
 
-  async initContract(web3) {
+  async initChain(web3, chainId) {
     const { publicRuntimeConfig } = getConfig();
     const rewardContract = new web3.eth.Contract(
       publicRuntimeConfig.rewardContractABI,
       publicRuntimeConfig.rewardContractAddress
     );
-    await this.setState({ rewardContract });
+    const exitTokenAddress = await rewardContract.methods.exitToken().call();
+    const softETHTokenAddress = await rewardContract.methods.softETHToken().call();
+    if (!chainId) chainId = await web3.eth.getChainId();
+    await this.setState({ chainId, exitTokenAddress, softETHTokenAddress, rewardContract });
   }
 
   async loadData() {
@@ -166,7 +169,7 @@ class Index extends React.Component {
     const mmChainId = await mmWeb3.eth.getChainId();
     const chainId = await web3.eth.getChainId();
     if (chainId != mmChainId) {
-      this.showAlert('Selected chain is incorrect', `Please switch MetaMask to ${this.chainByID(chainId)} chain.`);
+      this.showAlert('Selected chain is incorrect', `Please switch MetaMask to ${this.chainByID(chainId).name} chain.`);
       return null;
     }
     try {
@@ -180,7 +183,7 @@ class Index extends React.Component {
     if (!account) {
       this.showAlert('Unlock your wallet', 'Application doesn\'t see your address in MetaMask.');
     }
-    await this.initContract(mmWeb3);
+    await this.initChain(mmWeb3, mmChainId);
     await this.setState({ web3: mmWeb3 });
     return account;
   }
@@ -188,16 +191,16 @@ class Index extends React.Component {
   chainByID(id) {
     switch(id) {
     case 1:
-      return 'Ethereum Mainnet';
+      return { name: 'Ethereum Mainnet', etherscan: 'etherscan.io' };
     case 42:
-      return 'Kovan';
+      return { name: 'Kovan', etherscan: 'kovan.etherscan.io' };
     default:
-      return `ID ${id}`;
+      return { name: `ID ${id}` };
     }
   }
 
   render() {
-    const { currentData, lockButtons, totalStakeAmount } = this.state;
+    const { chainId, currentData, exitTokenAddress, softETHTokenAddress, lockButtons, totalStakeAmount } = this.state;
 
     const loading = <span className="spinner-border text-info" role="status">
       <span className="sr-only">Loading...</span>
@@ -209,6 +212,31 @@ class Index extends React.Component {
       <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
       &nbsp;{label} ...
     </span>);
+
+    const etherscan = this.chainByID(chainId).etherscan;
+
+    let exitTotalSupply;
+    if (currentData) {
+      const usdWorth = '$' + currentData._exitCurrentSupply;
+      if (etherscan) {
+        exitTotalSupply = <a href={`https://${etherscan}/token/${exitTokenAddress}`} className="text-info" target="_blank">{usdWorth}</a>;
+      } else {
+        exitTotalSupply = usdWorth;
+      }
+    } else {
+      exitTotalSupply = loadingSmall;
+    }
+
+    let softETHTotalSupply;
+    if (currentData) {
+      if (etherscan) {
+        softETHTotalSupply = <a href={`https://${etherscan}/token/${softETHTokenAddress}`} className="text-info" target="_blank">{currentData._softETHCurrentSupply}</a>;
+      } else {
+        softETHTotalSupply = currentData._softETHCurrentSupply;
+      }
+    } else {
+      softETHTotalSupply = loadingSmall;
+    }
 
     return (
       <div>
@@ -247,11 +275,11 @@ class Index extends React.Component {
                 <tbody>
                   <tr>
                     <td>EXIT total supply</td>
-                    <td width="30%">{currentData ? '$' + currentData._exitCurrentSupply : loadingSmall}</td>
+                    <td width="30%">{exitTotalSupply}</td>
                   </tr>
                   <tr>
                     <td>SoftETH total supply</td>
-                    <td>{currentData ? currentData._softETHCurrentSupply : loadingSmall}</td>
+                    <td>{softETHTotalSupply}</td>
                   </tr>
                   <tr>
                     <td>SoftETH expected supply</td>
