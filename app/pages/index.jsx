@@ -225,19 +225,19 @@ class Index extends React.Component {
                 <tbody>
                   <tr>
                     <td>Current staking epoch</td>
-                    <td width="30%">{currentData ? currentData._lastStakingEpochFinished : loadingSmall}</td>
+                    <td width="30%">{currentData ? '#' + currentData._lastStakingEpochFinished : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td>STAKE/USD</td>
-                    <td>{currentData ? currentData._stakeUsd : loadingSmall}</td>
+                    <td>{currentData ? '$' + currentData._stakeUsd : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td>ETH/USD (last rebalance)</td>
-                    <td>{currentData ? currentData._ethUsd : loadingSmall}</td>
+                    <td>{currentData ? '$' + currentData._ethUsd : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td>ETH/USD (current)</td>
-                    <td>{currentData ? currentData._ethUsdCurrent : loadingSmall}</td>
+                    <td>{currentData ? '$' + currentData._ethUsdCurrent : loadingSmall}</td>
                   </tr>
                 </tbody>
               </table>
@@ -247,7 +247,7 @@ class Index extends React.Component {
                 <tbody>
                   <tr>
                     <td>EXIT total supply</td>
-                    <td width="30%">{currentData ? currentData._exitCurrentSupply : loadingSmall}</td>
+                    <td width="30%">{currentData ? '$' + currentData._exitCurrentSupply : loadingSmall}</td>
                   </tr>
                   <tr>
                     <td>SoftETH total supply</td>
