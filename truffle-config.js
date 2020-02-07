@@ -3,7 +3,7 @@ const assert = require('assert');
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 
 function getPrivateKeys() {
-  let privateKeys = fs.readFileSync('keys', 'utf8').trim().split('\n');
+  let privateKeys = fs.readFileSync('keys', 'utf8').trim().split(/\r?\n/);
   privateKeys = privateKeys.map((key) => { return key.trim() });
   assert(privateKeys.length === 2);
   return privateKeys;

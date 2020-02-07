@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "next build",
+    "clear": "rm -rf ./data && git checkout ./data",
     "dev": "npm run rebalancer && next",
     "rebalancer": "node server.js >> data/rebalancer.log 2>&1 &",
     "start": "npm run rebalancer && next start -p $PORT"

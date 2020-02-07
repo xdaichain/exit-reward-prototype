@@ -341,7 +341,7 @@ class Index extends React.Component {
                   </tr>
                   <tr>
                     <td colSpan="2">
-                      <button type="button" className="btn btn-outline-secondary btn-sm btn-block" onClick={this.onRefreshButton} disabled={!currentData}>
+                      <button type="button" className="btn btn-secondary btn-sm btn-block" onClick={this.onRefreshButton} disabled={!currentData}>
                         {currentData ? 'Refresh' : loadingButton('Loading')}
                       </button>
                     </td>
