@@ -6,14 +6,8 @@ export class Modal extends React.Component {
     this.state = { title: '', message: '' };
   }
 
-  show(title, message, callback) {
+  show(title, message) {
     this.setState({ title, message });
-    $('#modal').off('hidden.bs.modal');
-    $('#modal').on('hidden.bs.modal', function(e) {
-      if (callback) {
-        callback();
-      }
-    });
     $('#modal').modal('show');
   }
 

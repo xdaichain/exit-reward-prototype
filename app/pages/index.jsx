@@ -4,18 +4,22 @@ import Head from 'next/head'
 import Web3 from 'web3'
 import { Modal } from '../components/Modal'
 
+const BLOCK_RECHECK_INTERVAL = 3; // seconds
+
 class Index extends React.Component {
   constructor(props) {
     super(props);
 
     const web3 = new Web3(getConfig().publicRuntimeConfig.rpcURL);
 
-    this.state = { totalStakeAmount: 5000, web3, lockButtons: false };
+    this.state = { totalStakeAmount: 5000, web3, lockButtons: false, prevBlockChecked: 0 };
 
+    this.catchRebalanceEvent = this.catchRebalanceEvent.bind(this);
+    this.loadData = this.loadData.bind(this);
     this.onChangeStakeAmount = this.onChangeStakeAmount.bind(this);
     this.onFinishStakingEpoch = this.onFinishStakingEpoch.bind(this);
-    this.onRebalance = this.onRebalance.bind(this);
-    this.onRefresh = this.onRefresh.bind(this);
+    this.onRebalanceButton = this.onRebalanceButton.bind(this);
+    this.onRefreshButton = this.onRefreshButton.bind(this);
   }
 
   async componentDidMount() {
@@ -24,9 +28,36 @@ class Index extends React.Component {
       window.ethereum.autoRefreshOnNetworkChange = false;
     }
     await this.loadData();
+    setTimeout(this.catchRebalanceEvent, BLOCK_RECHECK_INTERVAL * 1000);
     $(function() {
       $('[data-toggle="tooltip"]').tooltip();
     });
+  }
+
+  async catchRebalanceEvent() {
+    const { prevBlockChecked, rewardContract, web3 } = this.state;
+    const currentBlock = await web3.eth.getBlockNumber();
+    let eventCaught = false;
+
+    if (currentBlock > prevBlockChecked) {
+      const fromBlock = prevBlockChecked > 0 ? prevBlockChecked + 1 : currentBlock;
+      const toBlock = currentBlock;
+      const events = await rewardContract.getPastEvents('Rebalanced', {fromBlock, toBlock});
+
+      if (events.length > 0) {
+        eventCaught = true;
+        $('.rebalanceAlert').removeClass('d-none');
+        setTimeout(() => {
+          window.location.reload(true);
+        }, 5000);
+      }
+
+      await this.setState({ prevBlockChecked: currentBlock });
+    }
+
+    if (!eventCaught) {
+      setTimeout(this.catchRebalanceEvent, BLOCK_RECHECK_INTERVAL * 1000);
+    }
   }
 
   async initChain(web3, chainId) {
@@ -52,19 +83,21 @@ class Index extends React.Component {
 
   async loadData() {
     const { rewardContract, web3 } = this.state;
-    let currentData = await rewardContract.methods.getCurrentDataBatch().call();
-    if (currentData) {
-      currentData._ethUsd /= 100;
-      currentData._ethUsdCurrent /= 100;
-      currentData._exitCurrentSupply = web3.utils.fromWei(currentData._exitCurrentSupply, 'ether');
-      currentData._exitCurrentSupply = Math.trunc(currentData._exitCurrentSupply * 1000) / 1000;
-      currentData._softETHCurrentSupply = web3.utils.fromWei(currentData._softETHCurrentSupply, 'ether');
-      currentData._softETHCurrentSupply = Math.trunc(currentData._softETHCurrentSupply * 1000) / 1000;
-      currentData._softETHExpectedSupply = web3.utils.fromWei(currentData._softETHExpectedSupply, 'ether');
-      currentData._softETHExpectedSupply = Math.trunc(currentData._softETHExpectedSupply * 1000) / 1000;
-      currentData._stakeUsd /= 100;
+    if (rewardContract) {
+      let currentData = await rewardContract.methods.getCurrentDataBatch().call();
+      if (currentData) {
+        currentData._ethUsd /= 100;
+        currentData._ethUsdCurrent /= 100;
+        currentData._exitCurrentSupply = web3.utils.fromWei(currentData._exitCurrentSupply, 'ether');
+        currentData._exitCurrentSupply = Math.trunc(currentData._exitCurrentSupply * 1000) / 1000;
+        currentData._softETHCurrentSupply = web3.utils.fromWei(currentData._softETHCurrentSupply, 'ether');
+        currentData._softETHCurrentSupply = Math.trunc(currentData._softETHCurrentSupply * 1000) / 1000;
+        currentData._softETHExpectedSupply = web3.utils.fromWei(currentData._softETHExpectedSupply, 'ether');
+        currentData._softETHExpectedSupply = Math.trunc(currentData._softETHExpectedSupply * 1000) / 1000;
+        currentData._stakeUsd /= 100;
+      }
+      await this.setState({ currentData });
     }
-    await this.setState({ currentData });
   }
 
   /*
@@ -97,20 +130,18 @@ class Index extends React.Component {
         _this.showAlert('Error', error.message);
       } else {
         try {
-          let tx
-          let currentBlockNumber
-          const maxWaitBlocks = 6
-          const startBlockNumber = (await web3.eth.getBlockNumber()) - 0
-          const finishBlockNumber = startBlockNumber + maxWaitBlocks
+          let tx;
+          let currentBlockNumber;
+          const maxWaitBlocks = 6;
+          const startBlockNumber = (await web3.eth.getBlockNumber()) - 0;
+          const finishBlockNumber = startBlockNumber + maxWaitBlocks;
           do {
-            await _this.sleep(3) // seconds
-            tx = await web3.eth.getTransactionReceipt(txHash)
-            currentBlockNumber = await web3.eth.getBlockNumber()
+            await _this.sleep(BLOCK_RECHECK_INTERVAL);
+            tx = await web3.eth.getTransactionReceipt(txHash);
+            currentBlockNumber = await web3.eth.getBlockNumber();
           } while (tx === null && currentBlockNumber <= finishBlockNumber)
           if (tx) {
-            if (tx.status === true || tx.status === '0x1') {
-              _this.showAlert('Success', 'Transaction has been mined successfully.', () => {window.location.reload(true)});
-            } else {
+            if (tx.status !== true && tx.status !== '0x1') {
               _this.showAlert('Transaction reverted', 'Transaction reverted');
             }
           } else {
@@ -142,7 +173,7 @@ class Index extends React.Component {
     }
   }
 
-  async onRebalance() {
+  async onRebalanceButton() {
     const account = await this.unlockMetaMaskAccount();
     if (account) {
       this.sendTx(
@@ -152,7 +183,7 @@ class Index extends React.Component {
     }
   }
 
-  async onRefresh() {
+  async onRefreshButton() {
     await this.setState({ currentData: null });
     await this.loadData();
   }
@@ -161,8 +192,8 @@ class Index extends React.Component {
     return new Promise(resolve => setTimeout(resolve, seconds * 1000))
   }
 
-  showAlert(title, message, callback) {
-    this.refs.modal.show(title, message, callback);
+  showAlert(title, message) {
+    this.refs.modal.show(title, message);
   }
 
   softETHtoEXITRatio() {
@@ -259,6 +290,7 @@ class Index extends React.Component {
     }
 
     const dottedHelp = {borderBottom:'1px dotted black',cursor:'default'};
+    const columnWidth = 320;
 
     return (
       <div>
@@ -271,7 +303,7 @@ class Index extends React.Component {
         <div className="container">
           <div className="row justify-content-md-center">
             <div className="col-md-auto" align="center">
-              <table className="table table-borderless mb-0" style={{width:'320px'}}>
+              <table className="table table-borderless mb-0" style={{width:`${columnWidth}px`}}>
                 <tbody>
                   <tr>
                     <td><span data-toggle="tooltip" title="Number of the current staking epoch. At the end of each staking epoch, STAKE and EXIT rewards are minted and distributed to validators who participated in the epoch." style={dottedHelp}>Current staking epoch</span></td>
@@ -293,7 +325,7 @@ class Index extends React.Component {
               </table>
             </div>
             <div className="col-md-auto" align="center">
-              <table className="table table-borderless mb-0" style={{width:'320px'}}>
+              <table className="table table-borderless mb-0" style={{width:`${columnWidth}px`}}>
                 <tbody>
                   <tr>
                     <td><span data-toggle="tooltip" title="Total amount of minted EXIT currently in the contract." style={dottedHelp}>EXIT total supply</span></td>
@@ -309,7 +341,7 @@ class Index extends React.Component {
                   </tr>
                   <tr>
                     <td colSpan="2">
-                      <button type="button" className="btn btn-outline-secondary btn-sm btn-block" onClick={this.onRefresh} disabled={!currentData}>
+                      <button type="button" className="btn btn-outline-secondary btn-sm btn-block" onClick={this.onRefreshButton} disabled={!currentData}>
                         {currentData ? 'Refresh' : loadingButton('Loading')}
                       </button>
                     </td>
@@ -320,13 +352,13 @@ class Index extends React.Component {
           </div>
           <div className="row justify-content-md-center">
             <div className="col-md-auto" align="center">
-              <table className="table table-borderless mb-0" style={{width:'320px',height:'150px'}}>
+              <table className="table table-borderless mb-0" style={{width:`${columnWidth}px`,height:'150px'}}>
                 <tbody>
                   <tr>
                     <td align="center" className="align-bottom">
                       SoftETH : EXIT
                       <h1>{currentData ? this.softETHtoEXITRatio() + ' : 1' : loading}</h1>
-                      <button type="button" className="btn btn-info btn-block" onClick={this.onRebalance} disabled={lockButtons}>
+                      <button type="button" className="btn btn-info btn-block" onClick={this.onRebalanceButton} disabled={lockButtons}>
                         {!lockButtons ? 'Rebalance' : loadingButton('Waiting')}
                       </button>
                     </td>
@@ -335,7 +367,7 @@ class Index extends React.Component {
               </table>
             </div>
             <div className="col-md-auto" align="center">
-              <table className="table table-borderless mb-0" style={{width:'320px',height:'150px'}}>
+              <table className="table table-borderless mb-0" style={{width:`${columnWidth}px`,height:'150px'}}>
                 <tbody>
                   <tr>
                     <td align="center" className="align-bottom">
@@ -352,6 +384,16 @@ class Index extends React.Component {
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        <div className="container d-none rebalanceAlert">
+          <div className="row">
+            <div className="col" align="center">
+              <div className="alert alert-success" role="alert" style={{maxWidth:`${columnWidth*2}px`}}>
+                Someone invoked rebalancing. The page will be reloaded shortly...
+              </div>
             </div>
           </div>
         </div>
