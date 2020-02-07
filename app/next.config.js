@@ -6,6 +6,8 @@ module.exports = {
   },
   ratioReadInterval: 600,  // 10 minutes (in seconds)
   rebalanceInterval: 3600, // 1 hour (in seconds)
+  //ratioReadInterval: 60,  // for testing
+  //rebalanceInterval: 120, // for testing
   privateKey: '', // a private key of an account to send transactions from
   webpack: (config, { isServer }) => {
     // Fixes npm packages that depend on `fs` module

@@ -4,9 +4,10 @@
   "description": "DApp for the EXIT Reward Token prototype",
   "main": "index.js",
   "scripts": {
-    "dev": "next",
+    "dev": "npm run rebalancer && next",
     "build": "next build",
-    "start": "next start -p $PORT"
+    "start": "npm run rebalancer && next start -p $PORT",
+    "rebalancer": "node server.js >> data/rebalancer.log 2>&1 &"
   },
   "keywords": [],
   "author": "",

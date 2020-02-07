@@ -12,8 +12,7 @@ const rewardContract = new web3.eth.Contract(
 );
 
 if (!getPrivateKey()) {
-  log('Fatal error: private key is not specified')
-  return;
+  log('Warning: private key is not specified. Autorebalance will not work')
 }
 
 var lastRebalancePoint = getLastRebalancePoint();
@@ -157,6 +156,7 @@ function getLastRebalancePoint(day = today()) {
 }
 
 function getPrivateKey() {
+  if (!config.privateKey) return null;
   const key = config.privateKey.trim();
   if (!key) return null;
   if (!key.startsWith('0x') && !key.startsWith('0X')) return `0x${key}`;
