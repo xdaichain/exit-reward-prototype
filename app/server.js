@@ -1,4 +1,5 @@
 const config = require(`${__dirname}/next.config.js`);
+const { getCurrentPoint, sleep, today, yesterday } = require(`${__dirname}/components/utils.js`);
 const fs = require('fs');
 const Web3 = require('web3');
 
@@ -10,6 +11,8 @@ const rewardContract = new web3.eth.Contract(
   config.publicRuntimeConfig.rewardContractABI,
   config.publicRuntimeConfig.rewardContractAddress
 );
+
+log('Start', true);
 
 if (!getPrivateKey()) {
   log('Warning: private key is not specified. Autorebalance will not work')
@@ -78,31 +81,6 @@ async function readOrRebalance() {
   }
 
   setTimeout(readOrRebalance, ratioReadInterval * 1000);
-}
-
-// Returns today's date in the format YYYY-MM-DD.
-function today() {
-  const now = new Date;
-  const year = now.getUTCFullYear();
-  const month = (now.getUTCMonth() - 0 + 1).toString().padStart(2, '0');
-  const day = now.getUTCDate().toString().padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-// Returns yesterday's date in the format YYYY-MM-DD.
-function yesterday() {
-  const now = new Date;
-  const dayAgo = new Date(now.getTime() - 86400000);
-  const year = dayAgo.getUTCFullYear();
-  const month = (dayAgo.getUTCMonth() - 0 + 1).toString().padStart(2, '0');
-  const day = dayAgo.getUTCDate().toString().padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-// Returns unix timestamp (in UTC) for the current moment.
-function getCurrentPoint() {
-  const now = new Date;
-  return Math.trunc(now.getTime() / 1000);
 }
 
 // Returns unix timestamp (in UTC) for the latest known point of the ratio reading.
@@ -189,7 +167,7 @@ async function getSoftETHtoEXITRatio(_try = 1) {
 }
 
 // Prints log message with the current time.
-function log(message) {
+function log(message, emptyPreLine) {
   const now = new Date;
   const year = now.getUTCFullYear();
   const month = (now.getUTCMonth() - 0 + 1).toString().padStart(2, '0');
@@ -198,6 +176,9 @@ function log(message) {
   const minutes = (now.getUTCMinutes() - 0).toString().padStart(2, '0');
   const seconds = (now.getUTCSeconds() - 0).toString().padStart(2, '0');
   const time = `${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`;
+  if (emptyPreLine) {
+    console.log('');
+  }
   console.log(`${time} ${message}`);
 }
 
@@ -223,8 +204,4 @@ function saveRatioToCSV(ratio, rebalanced) {
   fs.writeFileSync(filepath, newContent, { encoding: 'utf8' });
 
   log(`  Saved successfully to ${filepath}`)
-}
-
-async function sleep(seconds) {
-  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 }

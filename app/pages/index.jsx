@@ -1,8 +1,9 @@
-import React from 'react'
-import getConfig from 'next/config'
-import Head from 'next/head'
-import Web3 from 'web3'
-import { Modal } from '../components/Modal'
+import React from 'react';
+import getConfig from 'next/config';
+import Head from 'next/head';
+import Web3 from 'web3';
+import { Modal } from '../components/Modal';
+import utils from '../components/utils';
 
 const BLOCK_RECHECK_INTERVAL = 3; // seconds
 
@@ -23,12 +24,81 @@ class Index extends React.Component {
   }
 
   async componentDidMount() {
+    const chartCategories = this.props.categories;
+    const chartSeriesData = this.props.seriesData;
+    const chartAnnotationLabels = this.props.annotationLabels;
+
+    if (chartSeriesData && chartSeriesData.length > 0) {
+      $(function() {
+        $('.ratioHistory').removeClass('d-none');
+        Highcharts.chart('chart', {
+          annotations: [{
+            labelOptions: {
+              borderColor: '#E07C3A',
+              borderWidth: 2,
+              shape: 'connector',
+              style: {
+                color: '#E07C3A'
+              },
+              x: -10,
+              y: 40
+            },
+            labels: chartAnnotationLabels
+          }],
+          chart: {
+            type: 'spline'
+          },
+          title: {
+            text: 'SoftETH:EXIT ratio history for the last 24 hours (with autorebalance points):'
+          },
+          plotOptions: {
+            series: {
+              animation: false
+            }
+          },
+          series: [{
+            data: chartSeriesData,
+            name: 'Ratio',
+            showInLegend: false,
+            marker: {
+              enabled: false
+            }
+          }],
+          tooltip: {
+            backgroundColor: '#ffffff',
+            headerFormat: '<p class="mb-1">{point.key}</p>',
+            pointFormat: '<p class="mb-0">{series.name}: <b>{point.y}</b></p>',
+            style: {
+              fontSize: '14px'
+            },
+            useHTML: true
+          },
+          xAxis: {
+            categories: chartCategories,
+            reversed: true
+          },
+          yAxis: {
+            title: {
+              text: undefined
+            },
+            plotLines: [{
+              color: '#6c757d',
+              width: 1,
+              value: 2,
+              zIndex: 3
+            }]
+          },
+        });
+      });
+    }
+
     await this.initChain(this.state.web3);
     if (window.ethereum) {
       window.ethereum.autoRefreshOnNetworkChange = false;
     }
     await this.loadData();
     setTimeout(this.catchRebalanceEvent, BLOCK_RECHECK_INTERVAL * 1000);
+
     $(function() {
       $('[data-toggle="tooltip"]').tooltip();
     });
@@ -42,22 +112,75 @@ class Index extends React.Component {
     if (currentBlock > prevBlockChecked) {
       const fromBlock = prevBlockChecked > 0 ? prevBlockChecked + 1 : currentBlock;
       const toBlock = currentBlock;
-      const events = await rewardContract.getPastEvents('Rebalanced', {fromBlock, toBlock});
 
-      if (events.length > 0) {
-        eventCaught = true;
-        $('.rebalanceAlert').removeClass('d-none');
-        setTimeout(() => {
-          window.location.reload(true);
-        }, 5000);
-      }
+      try {
+        const events = await rewardContract.getPastEvents('Rebalanced', {fromBlock, toBlock});
 
-      await this.setState({ prevBlockChecked: currentBlock });
+        if (events.length > 0) {
+          eventCaught = true;
+          $('.rebalanceAlert').removeClass('d-none');
+          setTimeout(() => {
+            window.location.reload(true);
+          }, 5000);
+        }
+
+        await this.setState({ prevBlockChecked: currentBlock });
+      } catch (e) {}
     }
 
     if (!eventCaught) {
       setTimeout(this.catchRebalanceEvent, BLOCK_RECHECK_INTERVAL * 1000);
     }
+  }
+
+  static getInitialProps(ctx) {
+    if (ctx.req) {
+      let categories = [];
+      let seriesData = [];
+      let annotationLabels = [];
+
+      const currentPointTimestamp = utils.getCurrentPoint();
+      const fs = require('fs');
+
+      for (let d = 0; d < 2; d++) {
+        try {
+          const date = (d == 0) ? utils.today() : utils.yesterday();
+          let content = fs.readFileSync(`./data/${date}.csv`, 'utf-8');
+
+          content = content.trim();
+          if (content.length == 0) throw Error;
+
+          const lines = content.split(/\r?\n/);
+        
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim().split(';');
+            const time = line[0].trim();
+            const ratio = parseFloat(line[1].trim());
+            const rebalanced = line[2].trim();
+
+            const point = `${date} ${time} UTC`;
+            const pointTimestamp = Date.parse(point) / 1000;
+
+            if (currentPointTimestamp - pointTimestamp > 24 * 3600) {
+              // If the timepoint is older that 24 hours from now, skip it
+              continue;
+            }
+
+            categories.push(time);
+
+            if (rebalanced === '1') {
+              seriesData.push({y: ratio, name: `Autorebalanced at ${point}`, id: point});
+              annotationLabels.push({point, text: 'R'});
+            } else {
+              seriesData.push({y: ratio, name: `Time: ${point}`});
+            }
+          }
+        } catch(e) {}
+      }
+
+      return { categories, seriesData, annotationLabels };
+    }
+    return {};
   }
 
   async initChain(web3, chainId) {
@@ -100,19 +223,6 @@ class Index extends React.Component {
     }
   }
 
-  /*
-  static getInitialProps(ctx) {
-    if (ctx.req) {
-      const fs = require('fs');
-      const data = fs.readFileSync('someTestData.txt', 'utf-8');
-      console.log('server side');
-      return { name: data };
-    }
-    console.log('client side');
-    return {};
-  }
-  */
-
   onChangeStakeAmount(e) {
     this.setState({ totalStakeAmount: e.target.value });
   }
@@ -136,7 +246,7 @@ class Index extends React.Component {
           const startBlockNumber = (await web3.eth.getBlockNumber()) - 0;
           const finishBlockNumber = startBlockNumber + maxWaitBlocks;
           do {
-            await _this.sleep(BLOCK_RECHECK_INTERVAL);
+            await utils.sleep(BLOCK_RECHECK_INTERVAL);
             tx = await web3.eth.getTransactionReceipt(txHash);
             currentBlockNumber = await web3.eth.getBlockNumber();
           } while (tx === null && currentBlockNumber <= finishBlockNumber)
@@ -186,10 +296,6 @@ class Index extends React.Component {
   async onRefreshButton() {
     await this.setState({ currentData: null });
     await this.loadData();
-  }
-
-  async sleep(seconds) {
-    return new Promise(resolve => setTimeout(resolve, seconds * 1000))
   }
 
   showAlert(title, message) {
@@ -298,6 +404,8 @@ class Index extends React.Component {
           <title>DApp for the EXIT Reward Token prototype</title>
           <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no" />
           <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossOrigin="anonymous" />
+          <script src="https://code.highcharts.com/highcharts.js" />
+          <script src="https://code.highcharts.com/modules/annotations.js" />
         </Head>
 
         <div className="container">
@@ -394,6 +502,15 @@ class Index extends React.Component {
               <div className="alert alert-success" role="alert" style={{maxWidth:`${columnWidth*2}px`}}>
                 Someone invoked rebalancing. The page will be reloaded shortly...
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="container-fluid d-none ratioHistory">
+          <hr />
+          <div className="row">
+            <div className="col" align="center">
+              <div id="chart" style={{width:'100%',height:'400px'}}></div>
             </div>
           </div>
         </div>
