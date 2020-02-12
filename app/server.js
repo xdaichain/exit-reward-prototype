@@ -20,6 +20,7 @@ if (!getPrivateKey()) {
 
 var lastRebalancePoint = getLastRebalancePoint();
 var multiplier = 2;
+const maxGasPrice = 5000000000; // 5 gwei
 
 // When we must read the ratio next time (timeout in seconds from the current moment).
 const ratioReadTimeElapsed = getCurrentPoint() - getLastRatioReadPoint();
@@ -34,49 +35,73 @@ if (ratioReadInitialTimeout > 0) {
 // Rebalances the SoftETH supply every `rebalanceInterval` seconds.
 async function readOrRebalance() {
   let rebalanced = false;
+  let somethingIsWrong = false;
 
   // Read the current SoftETH:EXIT ratio
-  const ratio = await getSoftETHtoEXITRatio();
+  let ratio = await getSoftETHtoEXITRatio();
 
   if (getCurrentPoint() - lastRebalancePoint >= rebalanceInterval) {
     if (ratio == multiplier) {
       log(`Skip rebalancing as the current ratio is ${ratio}`);
     } else {
-      log('Rebalancing');
-
+      let gasPriceTooHigh = false;
+      let gasPrice = maxGasPrice;
       try {
-        const bytecode = await rewardContract.methods.rebalance().encodeABI();
-        const gas = await rewardContract.methods.rebalance().estimateGas();
-        const tx = await web3.eth.accounts.signTransaction({
-          to: config.publicRuntimeConfig.rewardContractAddress,
-          data: bytecode,
-          gas: Math.trunc(gas * 1.2)
-        }, getPrivateKey());
-
-        log(`  Waiting for tx ${tx.transactionHash} to be mined...`);
-        web3.eth.transactionBlockTimeout = 1;
-        web3.eth.transactionConfirmationBlocks = 1;
-        const receipt = await web3.eth.sendSignedTransaction(tx.rawTransaction);
-        if (receipt.status === true || receipt.status === '0x1') {
-          rebalanced = true;
-          log(`  Rebalanced successfully at block #${receipt.blockNumber}. Gas used: ${receipt.gasUsed}`);
-        } else {
-          log('  Transaction was reverted');
-        }
-      } catch(e) {
-        log(` Exception thrown: ${e.message}`);
+        gasPrice = await web3.eth.getGasPrice();
+      } catch(e) {}
+      if (gasPrice >= maxGasPrice * 2) {
+        gasPriceTooHigh = true;
+      } else if (gasPrice > maxGasPrice) {
+        gasPrice = maxGasPrice;
       }
 
-      if (rebalanced) {
-        lastRebalancePoint = getCurrentPoint();
+      if (gasPriceTooHigh) {
+        log(`Skip rebalancing as the current gas price is too high: ${gasPrice}`);
+      } else {
+        log('Rebalancing');
+
         try {
-          multiplier = await rewardContract.methods.COLLATERAL_MULTIPLIER().call();
+          const bytecode = await rewardContract.methods.rebalance().encodeABI();
+          const gas = await rewardContract.methods.rebalance().estimateGas();
+          const tx = await web3.eth.accounts.signTransaction({
+            to: config.publicRuntimeConfig.rewardContractAddress,
+            data: bytecode,
+            gas: Math.trunc(gas * 1.2),
+            gasPrice
+          }, getPrivateKey());
+
+          log(`  Waiting for tx ${tx.transactionHash} to be mined...`);
+          web3.eth.transactionBlockTimeout = 20;
+          web3.eth.transactionConfirmationBlocks = 1;
+          web3.eth.transactionPollingTimeout = 300;
+          const receipt = await web3.eth.sendSignedTransaction(tx.rawTransaction);
+          if (receipt.status === true || receipt.status === '0x1') {
+            rebalanced = true;
+            log(`  Rebalanced successfully at block #${receipt.blockNumber}. Gas used: ${receipt.gasUsed}`);
+          } else {
+            throw Error('Transaction was reverted');
+          }
         } catch(e) {
-          log(`Cannot read COLLATERAL_MULTIPLIER from the contract. Using the last known value = ${multiplier}`);
+          log(` Exception thrown: ${e.message}`);
+          somethingIsWrong = true;
         }
-        saveRatioToCSV(multiplier, true);
+
+        if (rebalanced) {
+          lastRebalancePoint = getCurrentPoint();
+          try {
+            multiplier = await rewardContract.methods.COLLATERAL_MULTIPLIER().call();
+          } catch(e) {
+            log(`Cannot read COLLATERAL_MULTIPLIER from the contract. Using the last known value = ${multiplier}`);
+          }
+          saveRatioToCSV(multiplier, true);
+        }
       }
     }
+  }
+
+  if (somethingIsWrong) {
+    // Read the current SoftETH:EXIT ratio again
+    ratio = await getSoftETHtoEXITRatio();
   }
 
   if (!rebalanced && ratio !== null) {
