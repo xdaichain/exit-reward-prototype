@@ -19,6 +19,7 @@ if (!getPrivateKey()) {
 }
 
 var lastRebalancePoint = getLastRebalancePoint();
+var multiplier = 2;
 
 // When we must read the ratio next time (timeout in seconds from the current moment).
 const ratioReadTimeElapsed = getCurrentPoint() - getLastRatioReadPoint();
@@ -34,50 +35,53 @@ if (ratioReadInitialTimeout > 0) {
 async function readOrRebalance() {
   let rebalanced = false;
 
+  // Read the current SoftETH:EXIT ratio
+  const ratio = await getSoftETHtoEXITRatio();
+
   if (getCurrentPoint() - lastRebalancePoint >= rebalanceInterval) {
-    log('Rebalancing');
+    if (ratio == multiplier) {
+      log(`Skip rebalancing as the current ratio is ${ratio}`);
+    } else {
+      log('Rebalancing');
 
-    try {
-      const bytecode = await rewardContract.methods.rebalance().encodeABI();
-      const gas = await rewardContract.methods.rebalance().estimateGas();
-      const tx = await web3.eth.accounts.signTransaction({
-        to: config.publicRuntimeConfig.rewardContractAddress,
-        data: bytecode,
-        gas: Math.trunc(gas * 1.2)
-      }, getPrivateKey());
-
-      log(`  Waiting for tx ${tx.transactionHash} to be mined...`);
-      web3.eth.transactionBlockTimeout = 1;
-      web3.eth.transactionConfirmationBlocks = 1;
-      const receipt = await web3.eth.sendSignedTransaction(tx.rawTransaction);
-      if (receipt.status === true || receipt.status === '0x1') {
-        rebalanced = true;
-        log(`  Rebalanced successfully at block #${receipt.blockNumber}. Gas used: ${receipt.gasUsed}`);
-      } else {
-        log('  Transaction was reverted');
-      }
-    } catch(e) {
-      log(` Exception thrown: ${e.message}`);
-    }
-
-    if (rebalanced) {
-      let multiplier = 2;
-      lastRebalancePoint = getCurrentPoint();
       try {
-        multiplier = await rewardContract.methods.COLLATERAL_MULTIPLIER().call();
+        const bytecode = await rewardContract.methods.rebalance().encodeABI();
+        const gas = await rewardContract.methods.rebalance().estimateGas();
+        const tx = await web3.eth.accounts.signTransaction({
+          to: config.publicRuntimeConfig.rewardContractAddress,
+          data: bytecode,
+          gas: Math.trunc(gas * 1.2)
+        }, getPrivateKey());
+
+        log(`  Waiting for tx ${tx.transactionHash} to be mined...`);
+        web3.eth.transactionBlockTimeout = 1;
+        web3.eth.transactionConfirmationBlocks = 1;
+        const receipt = await web3.eth.sendSignedTransaction(tx.rawTransaction);
+        if (receipt.status === true || receipt.status === '0x1') {
+          rebalanced = true;
+          log(`  Rebalanced successfully at block #${receipt.blockNumber}. Gas used: ${receipt.gasUsed}`);
+        } else {
+          log('  Transaction was reverted');
+        }
       } catch(e) {
-        log(`Cannot read COLLATERAL_MULTIPLIER from the contract. Using ${multiplier} as a default`);
+        log(` Exception thrown: ${e.message}`);
       }
-      saveRatioToCSV(multiplier, true);
+
+      if (rebalanced) {
+        lastRebalancePoint = getCurrentPoint();
+        try {
+          multiplier = await rewardContract.methods.COLLATERAL_MULTIPLIER().call();
+        } catch(e) {
+          log(`Cannot read COLLATERAL_MULTIPLIER from the contract. Using the last known value = ${multiplier}`);
+        }
+        saveRatioToCSV(multiplier, true);
+      }
     }
   }
 
-  if (!rebalanced) {
-    // Read and save the current SoftETH:EXIT ratio to CSV
-    const ratio = await getSoftETHtoEXITRatio();
-    if (ratio !== null) {
-      saveRatioToCSV(ratio);
-    }
+  if (!rebalanced && ratio !== null) {
+    // Save the current SoftETH:EXIT ratio to CSV
+    saveRatioToCSV(ratio);
   }
 
   setTimeout(readOrRebalance, ratioReadInterval * 1000);
