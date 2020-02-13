@@ -4,7 +4,7 @@ node_modules
 .next
 /flat
 /build
-/addresses*.json
+/addresses.kovan.json
 /keys
 /app/data/*.csv
 /app/data/*.log
