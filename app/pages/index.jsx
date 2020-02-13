@@ -233,7 +233,7 @@ class Index extends React.Component {
 
     this.setState({ lockButtons: true });
     method.send({
-      gasPrice: web3.utils.toWei('5', 'gwei'),
+      gasPrice: web3.utils.toWei('10', 'gwei'),
       from: account
     }, async function(error, txHash) {
       if (error) {
