@@ -2,7 +2,7 @@ import React from 'react';
 import getConfig from 'next/config';
 import Head from 'next/head';
 import Web3 from 'web3';
-import { Modal } from '../components/Modal';
+import { Modal } from '../components/modal';
 import utils from '../components/utils';
 
 const BLOCK_RECHECK_INTERVAL = 3; // seconds
