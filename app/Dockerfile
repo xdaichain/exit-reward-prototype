@@ -1,5 +1,7 @@
 FROM node:8-slim
 
+EXPOSE 80
+
 WORKDIR /app
 COPY components ./components
 COPY pages ./pages
