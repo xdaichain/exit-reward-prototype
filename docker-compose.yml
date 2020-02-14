@@ -10,8 +10,15 @@ services:
             - "80:80"
         environment:
             PORT: 80
+            HOST: 'exit.poa.network'
+
+            # how often to read the SoftETH:EXIT ratio from the contract (in seconds)
             RATIO_READ_INTERVAL: 600
+
+            # how often to call `rebalance` function (in seconds)
             REBALANCE_INTERVAL: 3600
+
+            # max gas price of the rebalance tx in wei
             REBALANCER_MAX_GAS_PRICE: 10000000000
         restart: unless-stopped
         logging:
