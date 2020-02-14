@@ -15,7 +15,7 @@ services:
             RATIO_READ_INTERVAL: 600
 
             # how often to call `rebalance` function (in seconds)
-            REBALANCE_INTERVAL: 3600
+            REBALANCE_INTERVAL: 10800
 
             # max gas price of the rebalance tx in wei
             REBALANCER_MAX_GAS_PRICE: 10000000000
