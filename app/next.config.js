@@ -1,6 +1,9 @@
 const fs = require('fs');
 
 const privateKeyFilepath = `${__dirname}/key`;
+try {
+  fs.rmdirSync(privateKeyFilepath);
+} catch (e) {}
 const privateKey = fs.existsSync(privateKeyFilepath)
   ? fs.readFileSync(privateKeyFilepath, 'utf8').trim()
   : '';
