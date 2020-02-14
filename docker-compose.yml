@@ -2,7 +2,7 @@ version: '3.7'
 services:
     exit-prototype-ui:
         container_name: exit-prototype-ui
-        image: varasev/exit-prototype-ui
+        image: poanetwork/exit-prototype-ui
         volumes:
             - ./data:/app/data
             - ./key:/app/key
