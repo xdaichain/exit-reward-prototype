@@ -8,7 +8,7 @@
     "clear": "rm -rf ./data && git checkout ./data",
     "dev": "npm run rebalancer && next telemetry disable && next",
     "rebalancer": "node server.js >> data/rebalancer.log 2>&1 &",
-    "start": "npm run rebalancer && next telemetry disable && next start -p $PORT"
+    "start": "npm run rebalancer && next telemetry disable && next start -p $PORT -H $HOST"
   },
   "keywords": [],
   "author": "",
