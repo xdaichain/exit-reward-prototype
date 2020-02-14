@@ -7,7 +7,12 @@ services:
             - ./data:/app/data
             - ./key:/app/key
         ports:
-            - "3000:3000"
+            - "80:80"
+        environment:
+            PORT: 80
+            RATIO_READ_INTERVAL: 600
+            REBALANCE_INTERVAL: 3600
+            REBALANCER_MAX_GAS_PRICE: 10000000000
         restart: unless-stopped
         logging:
             driver: "json-file"
