@@ -10,7 +10,6 @@ services:
             - "80:80"
         environment:
             PORT: 80
-            HOST: 'exit.poa.network'
 
             # how often to read the SoftETH:EXIT ratio from the contract (in seconds)
             RATIO_READ_INTERVAL: 600
