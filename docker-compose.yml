@@ -5,6 +5,7 @@ services:
         image: varasev/exit-prototype-ui
         volumes:
             - ./data:/app/data
+            - ./key:/app/key
         ports:
             - "3000:3000"
         restart: unless-stopped
