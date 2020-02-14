@@ -14,6 +14,9 @@ const rewardContract = new web3.eth.Contract(
 
 log('Start', true);
 
+log(`ratioReadInterval = ${ratioReadInterval}`)
+log(`rebalanceInterval = ${rebalanceInterval}`)
+
 if (!getPrivateKey()) {
   log('Warning: private key is not specified. Autorebalance will not work')
 }
