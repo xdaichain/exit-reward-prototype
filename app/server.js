@@ -20,7 +20,14 @@ if (!getPrivateKey()) {
 
 var lastRebalancePoint = getLastRebalancePoint();
 var multiplier = 2;
-const maxGasPrice = 5000000000; // 5 gwei
+var maxGasPrice = process.env.REBALANCER_MAX_GAS_PRICE;
+
+if (!maxGasPrice) {
+  log('Warning: REBALANCER_MAX_GAS_PRICE is undefined. Using default value of 10 gwei');
+  maxGasPrice = 10000000000;
+} else {
+  maxGasPrice = Number(maxGasPrice);
+}
 
 // When we must read the ratio next time (timeout in seconds from the current moment).
 const ratioReadTimeElapsed = getCurrentPoint() - getLastRatioReadPoint();
@@ -47,7 +54,7 @@ async function readOrRebalance() {
       let gasPriceTooHigh = false;
       let gasPrice = maxGasPrice;
       try {
-        gasPrice = await web3.eth.getGasPrice();
+        gasPrice = Number(await web3.eth.getGasPrice());
       } catch(e) {}
       if (gasPrice >= maxGasPrice * 2) {
         gasPriceTooHigh = true;
@@ -58,7 +65,7 @@ async function readOrRebalance() {
       if (gasPriceTooHigh) {
         log(`Skip rebalancing as the current gas price is too high: ${gasPrice}`);
       } else {
-        log('Rebalancing');
+        log(`Rebalancing [gasPrice = ${gasPrice}, maxGasPrice = ${maxGasPrice}]`);
 
         try {
           const bytecode = await rewardContract.methods.rebalance().encodeABI();
