@@ -1,27 +1,87 @@
 version: '3.7'
 services:
-    exit-prototype-ui:
-        container_name: exit-prototype-ui
-        image: poanetwork/exit-prototype-ui
-        volumes:
-            - ./data:/app/data
-            - ./key:/app/key
-        ports:
-            - "80:80"
-        environment:
-            PORT: 80
+  exit-prototype-ui:
+    container_name: exit-prototype-ui
+    image: poanetwork/exit-prototype-ui
+    volumes:
+      - ./data:/app/data
+      - ./key:/app/key
+    expose:
+      - "8000"
+    environment:
+      VIRTUAL_HOST: exit.poa.network
+      VIRTUAL_PORT: 8000
+      LETSENCRYPT_HOST: exit.poa.network
+      PORT: 8000
+      # how often to read the SoftETH:EXIT ratio from the contract (in seconds)
+      RATIO_READ_INTERVAL: 600
+      # how often to call `rebalance` function (in seconds)
+      REBALANCE_INTERVAL: 10800
+      # max gas price of the rebalance tx in wei
+      REBALANCER_MAX_GAS_PRICE: 10000000000
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "10"
 
-            # how often to read the SoftETH:EXIT ratio from the contract (in seconds)
-            RATIO_READ_INTERVAL: 600
+  nginx:
+    init: true
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./nginx/vhost:/etc/nginx/vhost.d
+      - ./nginx/html:/usr/share/nginx/html
+      - ./nginx/certs:/etc/nginx/certs:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "10"
 
-            # how often to call `rebalance` function (in seconds)
-            REBALANCE_INTERVAL: 10800
+  dockergen:
+    init: true
+    image: xdaichain/docker-gen
+    command: -notify-sighup nginx -watch /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+    container_name: dockergen
+    depends_on:
+      - nginx
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./nginx/vhost:/etc/nginx/vhost.d
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "10"
 
-            # max gas price of the rebalance tx in wei
-            REBALANCER_MAX_GAS_PRICE: 10000000000
-        restart: unless-stopped
-        logging:
-            driver: "json-file"
-            options:
-                max-size: "1m"
-                max-file: "10"
+  letsencrypt:
+    init: true
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: letsencrypt
+    restart: always
+    environment:
+      NGINX_PROXY_CONTAINER:  nginx
+      NGINX_DOCKER_GEN_CONTAINER: dockergen
+    volumes:
+      - ./nginx/vhost:/etc/nginx/vhost.d
+      - ./nginx/html:/usr/share/nginx/html
+      - ./nginx/certs:/etc/nginx/certs
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - nginx
+      - dockergen
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
+        max-file: "10"
