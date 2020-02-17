@@ -11,7 +11,7 @@ This prototype consists of three contracts:
 
 - **SoftETHToken** is an ERC20 token contract representing SoftETH token. It is mintable and burnable by the `Reward` contract. Initially, it's created with an empty supply. The supply is changed by the `Reward.rebalance()` function (see below). No one else can mint or burn the SoftETH tokens.
 
-These contracts are to be deployed in Ethereum Mainnet only. We use a public [price oracle contract](https://etherscan.io/address/0xad13fe330b0ae312bc51d2e5b9ca2ae3973957c7#code) available on Mainnet to retrieve the current ETH/USD rate.
+These contracts are deployed in Ethereum Mainnet ([see addresses](https://github.com/xdaichain/exit-reward-prototype/blob/master/addresses.mainnet.json)). We use a public [price oracle contract](https://etherscan.io/address/0xad13fe330b0ae312bc51d2e5b9ca2ae3973957c7#code) available on Mainnet to retrieve the current ETH/USD rate.
 
 For ERC20 implementations we use the latest [OpenZeppelin contracts](https://github.com/OpenZeppelin/openzeppelin-contracts/tree/master/contracts/token/ERC20).
 
@@ -52,7 +52,7 @@ There are a few public getters which could be helpful:
 
 The `Reward` contract is well documented, so you can look into its code and get the detailed information about each function.
 
-The ABIs will be provided after we deploy the contracts on Mainnet.
+The ABIs are available in `etherscan.io` as the contracts are verified ([see contract addresses](https://github.com/xdaichain/exit-reward-prototype/blob/master/addresses.mainnet.json)).
 
 ## User roles
 
@@ -108,3 +108,7 @@ To change STAKE/USD rate, call the `Reward.setSTAKEUSD` function by the `Currenc
 To compare the current SoftETH supply with the expected supply, use `Reward.softETHCurrentSupply` and `Reward.softETHExpectedSupply` getters. They should return almost the same value after `rebalance` is called.
 
 To know the current ETH/USD rate provided by the price oracle, use `Reward.ethUsdCurrent` getter.
+
+## UI
+
+The Application for interaction with the contracts is available in the `app` directory.
