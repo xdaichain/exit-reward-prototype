@@ -1,6 +1,6 @@
 # Running EXIT token prototype App with Docker Compose
 
-To run the [Application](https://github.com/xdaichain/exit-reward-prototype/tree/master/app), follow these steps:
+To run the [Application](https://github.com/xdaichain/exit-reward-prototype/tree/master/app) on a live server, follow these steps:
 
 1. Download `docker-compose.yml`:
 
