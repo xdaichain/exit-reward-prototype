@@ -2,7 +2,7 @@
 
 1. Write a private key of autorebalancer address to the root `key` file (don't forget to make sure this address has a non-zero balance to be able to make `rebalance` transactions).
 
-2. Edit docker-compose.yml: set `VIRTUAL_HOST` and `LETSENCRYPT_HOST` environment variables to an actual domain name and change `RATIO_READ_INTERVAL`, `REBALANCE_INTERVAL`, `REBALANCER_MAX_GAS_PRICE` is needed.
+2. Edit `docker-compose.yml`: set `VIRTUAL_HOST` and `LETSENCRYPT_HOST` environment variables to an actual domain name and change `RATIO_READ_INTERVAL`, `REBALANCE_INTERVAL`, `REBALANCER_MAX_GAS_PRICE` if needed.
 
 3. Perform the following commands:
 
