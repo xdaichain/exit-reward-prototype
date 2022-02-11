@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/xdaichain/exit-reward-prototype#readme",
   "devDependencies": {
-    "@openzeppelin/contracts": "2.4.0",
+    "@openzeppelin/contracts": "4.4.2",
     "@openzeppelin/upgrades": "2.6.0",
     "@truffle/hdwallet-provider": "1.0.29",
     "ganache-cli": "6.8.2",
